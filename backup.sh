@@ -24,13 +24,15 @@ elif [ "$1" = "wiki" ]; then
 else
     usage
 fi
-
+echo "Download Url: "$DOWNLOAD_URL
 BASENAME=$1
 RUNBACKUP_URL="https://${INSTANCE}${SUBDIR}/rest/obm/1.0/runbackup"
 PROGRESS_URL="https://${INSTANCE}${SUBDIR}/rest/obm/1.0/getprogress.json"   
 
 # Grabs cookies and generates the backup on the UI. 
 TODAY=$(TZ=$TIMEZONE date +%Y%m%d)
+
+echo "LOCATION:" $LOCATION
 
 #Check if we should overwrite the previous backup or append a timestamp to 
 #prevent just that. The former is useful when an external backup program handles 
@@ -67,19 +69,23 @@ fi
 for (( c=1; c<=20; c++ )) do
     PROGRESS_JSON=$(curl -s --cookie $COOKIE_FILE_LOCATION $PROGRESS_URL)
     FILE_NAME=$(echo "$PROGRESS_JSON" | sed -n 's/.*"fileName"[ ]*:[ ]*"\([^"]*\).*/\1/p')
-
+    echo "Progress_json:" $PROGRESS_JSON
+    echo "filename:" $FILE_NAME
     echo $PROGRESS_JSON|grep error > /dev/null && break
 
     if [ ! -z "$FILE_NAME" ]; then
         break
     fi
-    sleep 10
+    sleep 36000
 done
 
 # If after 20 attempts it still fails it ends the script.
 if [ -z "$FILE_NAME" ]; then
+    echo "failed, timed out no backup file available"
     exit
 else
     # Download the new way, starting Nov 2016
-    curl -s -L --cookie $COOKIE_FILE_LOCATION "$DOWNLOAD_URL/$FILE_NAME" -o "$OUTFILE"
+    echo "before curl: download loaction (download url and file name" $DOWNLOAD_URL$FILE_NAME
+    echo "OUTFILE:" $OUTFILE
+    curl -s -L --cookie $COOKIE_FILE_LOCATION "$DOWNLOAD_URL$FILE_NAME" -o "$OUTFILE"
 fi
